@@ -158,6 +158,20 @@ void saveSbSimage(std::string filename) {
     std::cout << "Image saved !" << std::endl;
 }
 
+void saveColorImage(std::string filename) {
+    sl::Mat color;
+    zed_ptr->retrieveImage(color, sl::VIEW_RIGHT);
+    color.write((std::string("right/")+filename).c_str());
+
+    zed_ptr->retrieveImage(color, sl::VIEW_LEFT);
+    color.write((std::string("left/")+filename).c_str());
+
+    float max_value = std::numeric_limits<unsigned short int>::max();
+    float scale_factor = max_value / zed_ptr->getDepthMaxRangeValue();
+
+    sl::saveDepthAs(*zed_ptr, param->Depth_Format, param->saveName, scale_factor);
+}
+
 int main(int argc, char **argv) {
 
     sl::Camera zed;
@@ -275,7 +289,7 @@ int main(int argc, char **argv) {
 
     parameters.depth_mode = depth_mode;
     parameters.coordinate_units = sl::UNIT_MILLIMETER;
-    parameters.sdk_verbose = 1;
+    parameters.sdk_verbose = 0;
     parameters.sdk_gpu_id = device;
 
     sl::ERROR_CODE err = zed.open(parameters);
@@ -304,7 +318,7 @@ int main(int argc, char **argv) {
     bool printHelp = false;
     std::string helpString = "[d] save Depth, [P] Save Point Cloud, [m] change format PC, [n] change format Depth, [q] quit";
 
-    int depth_clamp = 5000;
+    int depth_clamp = 14000;
     zed.setDepthMaxRangeValue(depth_clamp);
 
     int mode_PC = 0;
@@ -343,8 +357,14 @@ int main(int argc, char **argv) {
 
         cv::imshow("Depth", depth_cv);
         key = cv::waitKey(5);
+	if (key != 'q')
+	  key = 'x';
 
         switch (key) {
+	  case 'x':
+                param->saveName =  std::string(std::string("depth/") + to_string(count)).c_str();
+                saveColorImage(std::to_string(count) + std::string(".png"));
+		break;
             case 'p':
             case 'P':
                 param->saveName = std::string(path + prefixPC + to_string(count)).c_str();
