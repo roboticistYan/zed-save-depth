@@ -53,10 +53,12 @@ typedef struct SaveParamStruct {
     sl::String saveName;
     bool askSavePC;
     bool askSaveDepth;
+    bool askSavePos;
     bool stop_signal;
 } SaveParam;
 
 sl::Camera *zed_ptr;
+sl::Pose *pose_ptr;
 SaveParam *param;
 
 std::string getFormatNamePC(sl::POINT_CLOUD_FORMAT f) {
@@ -144,6 +146,17 @@ void saveProcess() {
             param->askSavePC = false;
         }
 
+	if (param->askSavePos) {
+            std::cout << "Saving Pose " << param->saveName << " ..." << flush;
+            ofstream txtfile (param->saveName);
+            if (txtfile.is_open()) {
+                txtfile << pose_ptr->timestamp << '\n';
+                txtfile << pose_ptr->pose_data.getInfos() << "\n";
+                txtfile.close();
+            } else std::cout << "Unable to open text file";
+            std::cout << "done" << endl;
+            param->askSavePos = false;
+        }
         sl::sleep_ms(1);
     }
 }
@@ -162,6 +175,8 @@ int main(int argc, char **argv) {
 
     sl::Camera zed;
     zed_ptr = &zed;
+    sl::Pose zed_pose;
+    pose_ptr = &zed_pose;
 
     sl::InitParameters parameters;
 
@@ -272,6 +287,7 @@ int main(int argc, char **argv) {
 
     string prefixPC = "PC_"; //Default output file prefix
     string prefixDepth = "Depth_"; //Default output file prefix
+    string prefixPos = "Pos_"; // Default output pose prefix
 
     parameters.depth_mode = depth_mode;
     parameters.coordinate_units = sl::UNIT_MILLIMETER;
@@ -313,6 +329,7 @@ int main(int argc, char **argv) {
     param = new SaveParam();
     param->askSavePC = false;
     param->askSaveDepth = false;
+    param->askSavePos = false;
     param->stop_signal = false;
     param->PC_Format = static_cast<sl::POINT_CLOUD_FORMAT> (mode_PC);
     param->Depth_Format = static_cast<sl::DEPTH_FORMAT> (mode_Depth);
@@ -337,6 +354,8 @@ int main(int argc, char **argv) {
         zed.retrieveImage(depthDisplay, sl::VIEW_DEPTH);
 
         depth_cv = cv::Mat(depthDisplay.getHeight(), depthDisplay.getWidth(), CV_8UC4, depthDisplay.getPtr<sl::uchar1>(sl::MEM_CPU));
+
+        zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
         if (printHelp) // Write help text on the image if needed
             cv::putText(depth_cv, helpString, cv::Point(20, 20), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(111, 111, 111, 255), 2);
@@ -384,6 +403,12 @@ int main(int argc, char **argv) {
             case 's': // save side by side images
                 saveSbSimage(std::string("ZEDImage") + std::to_string(count) + std::string(".png"));
                 break;
+
+	    case 'l': // save positional information
+	    case 'L':
+                param->saveName = std::string(path + prefixPos + to_string(count)).c_str();
+                param->askSavePos = true;
+		break;
             case 'q': // quit
             case 'Q':
             case 27:
