@@ -67,4 +67,5 @@ Depth map file format      | Specify file format of the saved depth map: 'PNG' (
 Save depth         | Save the depth image in the selected format.            |'d'                   
 Point cloud file format    | Specify file format of the saved point cloud: 'XYZ', 'PCD' (ASCII), 'PLY', 'VTK'.   |'m'              
 Save point cloud         | Save the point cloud in the selected format.            |'p'                                                      
+Save position info. | Save positional information in text file | 'l'
 Quit                         | Quit the application.                  |'q'         
